@@ -1,0 +1,251 @@
+'use client'
+export const dynamic = 'force-dynamic'
+
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '../hooks/useAuth.js'
+import { BRAND } from '../data/content.js'
+import { SUMMARY, CATEGORY_TABS, BIOMARKERS, STATUS_META } from '../data/dashboard.js'
+
+function Sparkline({ history, color }) {
+  const w = 84, h = 28, pad = 3
+  const min = Math.min(...history), max = Math.max(...history)
+  const span = max - min || 1
+  const pts = history.map((v, i) => {
+    const x = pad + (i / (history.length - 1)) * (w - pad * 2)
+    const y = h - pad - ((v - min) / span) * (h - pad * 2)
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  })
+  const last = pts[pts.length - 1].split(',')
+
+  return (
+    <svg className="spark" viewBox={`0 0 ${w} ${h}`} width={w} height={h} aria-hidden>
+      <polyline
+        points={pts.join(' ')}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx={last[0]} cy={last[1]} r="2.6" fill={color} />
+    </svg>
+  )
+}
+
+/* ── Sidebar nav items ──────────────────────────────────── */
+const SIDE_MENU = [
+  { id: 'Data', label: 'Overview', icon: '⊞' },
+  { id: 'Data', label: 'Biomarkers', icon: '〜' },
+  { id: 'Plan', label: 'Plan', icon: '☰' },
+  { id: 'Services', label: 'Services', icon: '✦' },
+  { id: 'Reports', label: 'Reports', icon: '📋' },
+  { id: 'Timeline', label: 'Timeline', icon: '↕' },
+]
+
+const SIDE_CONNECT = []
+const SIDE_BOTTOM = []
+
+/* ── Plan page ──────────────────────────────────────────── */
+function PlanPage() {
+  return (
+    <div className="dm-page">
+      <h1 className="dm-page-title">Your plan</h1>
+      <p className="dm-page-sub">Personalised recommendations based on your latest results</p>
+
+      <div className="dm-pending-banner">
+        <span className="dm-pending-dot" />
+        <span>Pending action — book your consultation before May 19, 2025</span>
+      </div>
+
+      <div className="dm-plan-grid">
+        {[
+          { title: 'Protocol plan', desc: 'Your personalised health protocol is ready.', cta: 'Book consultation ↗', dark: true },
+          { title: 'Advanced blood panel', desc: 'Follow-up testing recommended.', cta: 'Schedule test ↗' },
+          { title: 'VO2 Max assessment', desc: 'Track fitness improvements.', cta: 'Book slot ↗' },
+          { title: 'DEXA body composition', desc: 'Measure body composition.', cta: 'Book slot ↗' },
+        ].map(c => (
+          <div key={c.title} className={`dm-plan-card${c.dark ? ' dm-plan-dark' : ''}`}>
+            <h3>{c.title}</h3>
+            <p>{c.desc}</p>
+            <button className="dm-plan-btn">{c.cta}</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ── Services page ──────────────────────────────────────── */
+const SERVICES = [
+  { icon: '🧪', title: 'Advanced blood panel', desc: '106-marker test', bg: '#eaf3de', color: '#3B6D11', cta: 'Book now ↗' },
+  { icon: '🧬', title: 'Genetic testing', desc: 'Full genomic sequencing', bg: '#e6f1fb', color: '#185FA5', cta: 'Book now ↗' },
+]
+
+function ServicesPage() {
+  return (
+    <div className="dm-page">
+      <h1 className="dm-page-title">Services</h1>
+      <p className="dm-page-sub">All available services</p>
+
+      <div className="dm-svc-grid">
+        {SERVICES.map(s => (
+          <div key={s.title} className="dm-svc-card">
+            <div className="dm-svc-icon" style={{ background: s.bg, color: s.color }}>{s.icon}</div>
+            <h3>{s.title}</h3>
+            <p>{s.desc}</p>
+            <button className="dm-svc-btn">{s.cta}</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ── Reports page ───────────────────────────────────────── */
+const REPORTS = [
+  { icon: '📄', title: 'Blood panel — Apr 2025', date: 'Apr 28, 2025' },
+]
+
+function ReportsPage() {
+  return (
+    <div className="dm-page">
+      <h1 className="dm-page-title">Reports</h1>
+      <p className="dm-page-sub">Your medical reports</p>
+
+      <div className="dm-report-list">
+        {REPORTS.map(r => (
+          <div key={r.title} className="dm-report-row">
+            <div className="dm-report-icon">{r.icon}</div>
+            <div>
+              <div className="dm-report-name">{r.title}</div>
+              <div className="dm-report-date">{r.date}</div>
+            </div>
+            <button className="dm-report-dl">↓ Download</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ── Timeline page ──────────────────────────────────────── */
+const TL_EVENTS = [
+  { title: 'Blood panel completed', body: '106 biomarkers tested', date: 'Apr 28, 2025', color: '#3ecf8e' },
+]
+
+function TimelinePage() {
+  return (
+    <div className="dm-page">
+      <h1 className="dm-page-title">Timeline</h1>
+      <p className="dm-page-sub">Your health journey</p>
+
+      <div className="dm-timeline">
+        {TL_EVENTS.map((ev, i) => (
+          <div key={i} className="dm-tl-item">
+            <div className="dm-tl-col">
+              <div className="dm-tl-dot" style={{ background: ev.color }} />
+            </div>
+            <div className="dm-tl-body">
+              <h3>{ev.title}</h3>
+              <p>{ev.body}</p>
+              <div className="dm-tl-date">{ev.date}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ── Main dashboard ─────────────────────────────────────── */
+const DATA_NAV = [
+  'Longevity Markers','Heart Health','Thyroid Health','Immune Regulation'
+]
+
+export default function Dashboard() {
+  const router = useRouter()
+  const { user, loading, signOut } = useAuth()
+
+  useEffect(() => {
+    if (!loading && !user) router.replace('/')
+  }, [loading, user, router])
+
+  if (loading || !user) {
+    return <div className="dash-gate">Loading your dashboard…</div>
+  }
+
+  const [tab, setTab] = useState('Data')
+  const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const fileRef = useRef(null)
+
+  const rows = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return BIOMARKERS.filter(b =>
+      (statusFilter === 'all' || b.status === statusFilter) &&
+      (!q || b.name.toLowerCase().includes(q))
+    )
+  }, [query, statusFilter])
+
+  const groups = useMemo(() => {
+    const map = new Map()
+    rows.forEach(r => {
+      if (!map.has(r.system)) map.set(r.system, [])
+      map.get(r.system).push(r)
+    })
+    return [...map.entries()]
+  }, [rows])
+
+  return (
+    <div className="dm-layout">
+
+      {/* Sidebar */}
+      <aside className="dm-sidebar">
+        <div className="dm-sb-logo" onClick={() => router.push('/')}>
+          {BRAND.wordmark}
+        </div>
+
+        <nav className="dm-sb-nav">
+          {SIDE_MENU.map((item, i) => (
+            <a key={i} className={tab === item.id ? 'active' : ''} onClick={() => setTab(item.id)}>
+              {item.icon} {item.label}
+            </a>
+          ))}
+        </nav>
+      </aside>
+
+      {/* Main */}
+      <div className="dm-main">
+        <div className="dm-content">
+
+          {tab === 'Plan' && <PlanPage />}
+          {tab === 'Services' && <ServicesPage />}
+          {tab === 'Reports' && <ReportsPage />}
+          {tab === 'Timeline' && <TimelinePage />}
+
+          {tab === 'Data' && (
+            <div>
+              <h1>Welcome, {user.name.split(' ')[0]}</h1>
+
+              <div className="dash-table">
+                {groups.map(([system, items]) => (
+                  <div key={system}>
+                    <h3>{system}</h3>
+                    {items.map(b => (
+                      <div key={b.name}>
+                        {b.name} — {b.value}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  )
+}
