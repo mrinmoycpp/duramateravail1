@@ -1,10 +1,8 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || ''
-
 function apiPath(path) {
-  return `${API_BASE}${path}`
+  return path
 }
 
 export function useAuth() {

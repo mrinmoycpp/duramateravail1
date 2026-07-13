@@ -2,12 +2,22 @@ const fs = require('fs')
 const path = require('path')
 const { PDFParse } = require('pdf-parse')
 
-const UPLOAD_DIR = path.join(process.cwd(), '.uploads')
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true })
+const isVercel = process.env.VERCEL === '1'
+const UPLOAD_DIR = isVercel ? path.join('/tmp', '.uploads') : path.join(process.cwd(), '.uploads')
+
+try {
+  if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true })
+} catch (e) {
+  // Ignore — may be read-only environment
+}
 
 const globalKey = '__duramater_report_store__'
 if (!globalThis[globalKey]) globalThis[globalKey] = new Map()
 const reports = globalThis[globalKey]
+
+const bufferKey = '__duramater_buffer_store__'
+if (!globalThis[bufferKey]) globalThis[bufferKey] = new Map()
+const bufferStore = globalThis[bufferKey]
 
 function storeReport(reportId, data) {
   reports.set(reportId, { ...data, createdAt: Date.now() })
@@ -144,9 +154,12 @@ const resultCache = new Map()
 
 async function parseReport(reportId) {
   if (resultCache.has(reportId)) return resultCache.get(reportId)
-  const filePath = path.join(UPLOAD_DIR, `${reportId}.pdf`)
-  if (!fs.existsSync(filePath)) return null
-  const buffer = fs.readFileSync(filePath)
+  const buffer = isVercel ? getFileBuffer(reportId) : (() => {
+    const filePath = path.join(UPLOAD_DIR, `${reportId}.pdf`)
+    if (!fs.existsSync(filePath)) return null
+    return fs.readFileSync(filePath)
+  })()
+  if (!buffer) return null
   try {
     const parser = new PDFParse({ data: buffer })
     await parser.load()
@@ -171,12 +184,19 @@ async function parseReport(reportId) {
 module.exports = { saveFile, getFileBuffer, parseReport, storeReport, getReport, getLatestReport }
 
 function saveFile(reportId, fileBuffer) {
+  if (isVercel) {
+    bufferStore.set(reportId, fileBuffer)
+    return `/tmp/${reportId}.pdf`
+  }
   const filePath = path.join(UPLOAD_DIR, `${reportId}.pdf`)
   fs.writeFileSync(filePath, fileBuffer)
   return filePath
 }
 
 function getFileBuffer(reportId) {
+  if (isVercel) {
+    return bufferStore.get(reportId) || null
+  }
   const filePath = path.join(UPLOAD_DIR, `${reportId}.pdf`)
   if (!fs.existsSync(filePath)) return null
   return fs.readFileSync(filePath)
