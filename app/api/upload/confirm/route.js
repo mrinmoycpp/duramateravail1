@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
-import { createRequire } from 'module'
-import { join } from 'path'
 
-const require = createRequire(join(process.cwd(), 'package.json'))
-const { storeReport, getReport } = require('./app/api/lib/pdf-parser.cjs')
+const globalKey = '__duramater_report_store__'
+if (!globalThis[globalKey]) globalThis[globalKey] = new Map()
+const reports = globalThis[globalKey]
 
 export async function POST(request) {
   try {
@@ -14,8 +13,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Report ID is required' }, { status: 400 })
     }
 
-    const existing = getReport(reportId)
-    storeReport(reportId, { ...existing, reportId, status: 'COMPLETED' })
+    const existing = reports.get(reportId) || {}
+    reports.set(reportId, { ...existing, reportId, status: 'COMPLETED', createdAt: existing.createdAt || Date.now() })
 
     return NextResponse.json({ success: true, reportId })
   } catch (error) {

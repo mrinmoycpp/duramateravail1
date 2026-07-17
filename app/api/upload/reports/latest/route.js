@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
-import { createRequire } from 'module'
-import { join } from 'path'
 
-const require = createRequire(join(process.cwd(), 'package.json'))
-const { getLatestReport } = require('./app/api/lib/pdf-parser.cjs')
+const globalKey = '__duramater_report_store__'
+if (!globalThis[globalKey]) globalThis[globalKey] = new Map()
+const reports = globalThis[globalKey]
 
 export async function GET(request) {
   try {
@@ -12,7 +11,12 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const latest = getLatestReport()
+    let latest = null
+    for (const [, report] of reports) {
+      if (!latest || report.createdAt > latest.createdAt) {
+        latest = { ...report }
+      }
+    }
 
     if (!latest) {
       return NextResponse.json({ error: 'No reports found' }, { status: 404 })
