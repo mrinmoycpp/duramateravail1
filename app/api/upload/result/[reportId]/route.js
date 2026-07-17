@@ -167,7 +167,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({ fileName, reportDate: new Date().toISOString(), updatedAt: new Date().toISOString(), biomarkers: [], healthScores: [], riskFlags: [] })
     }
 
-    const parser = new PDFParse({ data: buffer })
+    const parser = new PDFParse({ data: buffer, disableWorker: true })
     await parser.load()
     const textResult = await parser.getText()
     await parser.destroy()
