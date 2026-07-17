@@ -132,7 +132,6 @@ async function main() {
   const healthScores = computeHealthScores(biomarkers)
   const riskFlags = biomarkers
     .filter(b => b.status !== 'NORMAL')
-    .slice(0, 5)
     .map(b => ({
       biomarkerName: b.rawName,
       value: b.parsedValue,

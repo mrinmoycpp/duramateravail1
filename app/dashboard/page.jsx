@@ -1140,6 +1140,7 @@ export default function Dashboard() {
       <div className={`dm-mobile-drawer ${mobileMenuOpen ? 'open' : ''}`}>
         <button className="dm-drawer-close" onClick={() => setMobileMenuOpen(false)}>×</button>
         <div className="dm-drawer-logo">{BRAND.wordmark}</div>
+  
         
         {/* User Profile Info Card */}
         <div className="dm-drawer-profile">
