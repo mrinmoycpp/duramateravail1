@@ -1,8 +1,29 @@
 import { NextResponse } from 'next/server'
 import { createRequire } from 'module'
 
+if (!globalThis.DOMMatrix) {
+  globalThis.DOMMatrix = class DOMMatrix {
+    constructor() { this.a = 1; this.b = 0; this.c = 0; this.d = 1; this.e = 0; this.f = 0 }
+    scale() { return this }
+    translate() { return this }
+    multiply() { return this }
+    rotate() { return this }
+    skewX() { return this }
+    skewY() { return this }
+    transformPoint(p) { return p }
+  }
+}
+if (!globalThis.ImageData) {
+  globalThis.ImageData = class ImageData {
+    constructor(w, h) { this.width = w; this.height = h; this.data = new Uint8ClampedArray(w * h * 4) }
+  }
+}
+if (!globalThis.Path2D) {
+  globalThis.Path2D = class Path2D { constructor() {} addPath() {} closePath() {} moveTo() {} lineTo() {} } 
+}
+
 const require = createRequire(import.meta.url)
-const pdfParse = require('pdf-parse')
+const { PDFParse } = require('pdf-parse')
 
 const bufKey = '__duramater_pdf_buffers__'
 if (!globalThis[bufKey]) globalThis[bufKey] = new Map()
@@ -146,8 +167,11 @@ export async function GET(request, { params }) {
       return NextResponse.json({ fileName, reportDate: new Date().toISOString(), updatedAt: new Date().toISOString(), biomarkers: [], healthScores: [], riskFlags: [] })
     }
 
-    const data = await pdfParse(buffer)
-    const text = data.text || ''
+    const parser = new PDFParse({ data: buffer })
+    await parser.load()
+    const textResult = await parser.getText()
+    await parser.destroy()
+    const text = textResult?.text || ''
 
     const biomarkers = parseBiomarkersFromText(text)
     const healthScores = computeHealthScores(biomarkers)
