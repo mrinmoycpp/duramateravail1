@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
 
-const UPLOAD_DIR = path.join(process.cwd(), '.uploads')
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true })
+const bufKey = '__duramater_pdf_buffers__'
+if (!globalThis[bufKey]) globalThis[bufKey] = new Map()
+const pdfBuffers = globalThis[bufKey]
 
 const globalKey = '__duramater_report_store__'
 if (!globalThis[globalKey]) globalThis[globalKey] = new Map()
@@ -23,8 +22,7 @@ export async function PUT(request, { params }) {
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    const filePath = path.join(UPLOAD_DIR, `${reportId}.pdf`)
-    fs.writeFileSync(filePath, buffer)
+    pdfBuffers.set(reportId, buffer)
 
     reports.set(reportId, { reportId, fileName: file.name, status: 'UPLOADED', createdAt: Date.now() })
 
