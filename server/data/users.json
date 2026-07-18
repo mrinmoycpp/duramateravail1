@@ -38,5 +38,13 @@
     "passwordHash": "120000:e87e46439c393402ba8469671a8a1765:bd38bf44a6615ecc10240d940e3079dcc543b2aa089f705a08778a096399d281",
     "provider": "email",
     "createdAt": "2026-07-13T18:54:41.043Z"
+  },
+  {
+    "id": "ef709457-c87d-4aea-8fc2-1e81fc726c42",
+    "email": "mrinmoydhali24@gmail.com",
+    "name": "mrinmoy",
+    "passwordHash": "120000:fe9be64a52b8461f797fb6dddcf07a48:32087a4bb89a0dff2f090cf3596f680ec1b6531e209273a24dc7547a52334afd",
+    "provider": "email",
+    "createdAt": "2026-07-18T07:18:29.663Z"
   }
 ]
