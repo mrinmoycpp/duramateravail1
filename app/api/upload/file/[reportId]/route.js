@@ -118,36 +118,9 @@ function computeHealthScores(biomarkers) {
 
 async function extractText(buffer) {
   try {
-    if (!globalThis.DOMMatrix) {
-      globalThis.DOMMatrix = class DOMMatrix {
-        constructor() { this.a = 1; this.b = 0; this.c = 0; this.d = 1; this.e = 0; this.f = 0 }
-        scale() { return this }
-        translate() { return this }
-        multiply() { return this }
-        rotate() { return this }
-        skewX() { return this }
-        skewY() { return this }
-        transformPoint(p) { return p }
-      }
-    }
-    if (!globalThis.ImageData) {
-      globalThis.ImageData = class ImageData {
-        constructor(w, h) { this.width = w; this.height = h; this.data = new Uint8ClampedArray(w * h * 4) }
-      }
-    }
-    if (!globalThis.Path2D) {
-      globalThis.Path2D = class Path2D { constructor() {} addPath() {} closePath() {} moveTo() {} lineTo() {} }
-    }
-
-    const { createRequire } = await import('module')
-    const require = createRequire(import.meta.url)
-    const { PDFParse } = require('pdf-parse')
-
-    const parser = new PDFParse({ data: buffer, disableWorker: true })
-    await parser.load()
-    const textResult = await parser.getText()
-    await parser.destroy()
-    return textResult?.text || ''
+    const pdfParse = (await import('pdf-parse')).default
+    const data = await pdfParse(buffer)
+    return data?.text || ''
   } catch (err) {
     console.error('PDF parse error:', err.message)
     return ''

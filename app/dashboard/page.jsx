@@ -449,7 +449,7 @@ export default function Dashboard() {
       // If the PUT returned parsed results directly, use them (Vercel-compatible)
       if (uploadData.result) {
         setReport({ name: f.name, status: 'COMPLETED', reportId })
-        applyResult(uploadData.result)
+        try { applyResult(uploadData.result) } catch (applyErr) { console.error('applyResult error:', applyErr) }
         return
       }
 
@@ -741,7 +741,7 @@ export default function Dashboard() {
                 <div className="dm-ba-top">
                   <div className="dm-ba-label">Biological Age</div>
                   <div style={{ textAlign: 'right' }}>
-                    {liveSummary ? (
+                    {liveSummary?.bioAge ? (
                       <>
                         <div className="dm-ba-age-lbl">Estimated</div>
                         <div className="dm-ba-num" style={{ fontSize: 68, lineHeight: 1 }}>{liveSummary.bioAge.value}</div>
