@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Images from /public are served directly; no extra config needed.
+  serverExternalPackages: ['pdf-parse', 'pdfjs-dist'],
 }
 
 module.exports = nextConfig

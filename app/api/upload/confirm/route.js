@@ -1,24 +1,24 @@
 import { NextResponse } from 'next/server'
 
-const globalKey = '__duramater_report_store__'
-if (!globalThis[globalKey]) globalThis[globalKey] = new Map()
-const reports = globalThis[globalKey]
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'https://api.duramaterhealth.com'
 
 export async function POST(request) {
   try {
     const body = await request.json()
-    const { reportId } = body
+    const headers = { 'Content-Type': 'application/json' }
+    const auth = request.headers.get('authorization')
+    if (auth) headers['authorization'] = auth
 
-    if (!reportId) {
-      return NextResponse.json({ error: 'Report ID is required' }, { status: 400 })
-    }
+    const res = await fetch(`${BACKEND}/api/upload/confirm`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    })
 
-    const existing = reports.get(reportId) || {}
-    reports.set(reportId, { ...existing, reportId, status: 'COMPLETED', createdAt: existing.createdAt || Date.now() })
-
-    return NextResponse.json({ success: true, reportId })
+    const data = await res.json()
+    return NextResponse.json(data, { status: res.status })
   } catch (error) {
-    console.error('Error confirming upload:', error)
+    console.error('Error proxying confirm:', error)
     return NextResponse.json({ error: 'Failed to confirm upload' }, { status: 500 })
   }
 }

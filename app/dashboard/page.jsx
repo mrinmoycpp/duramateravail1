@@ -7,7 +7,7 @@ import { BRAND } from '../data/content.js'
 import { STATUS_META } from '../data/dashboard.js'
 import { useAuth } from '../hooks/useAuth.js'
 
-const API = ''
+const API = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'https://api.duramaterhealth.com'
 
 
 
@@ -420,11 +420,13 @@ export default function Dashboard() {
       const token = localStorage.getItem('token')
 
       // Step 1 — Get presigned upload URL
-      const urlRes = await fetch(`${API}/api/upload/url`, {
+      
+      const urlRes = await fetch(`https://api.duramaterhealth.com/api/upload/url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ fileName: f.name, mimeType: f.type || 'application/pdf', fileSizeBytes: f.size })
       })
+      console.log(urlRes)
       if (!urlRes.ok) {
         const errData = await urlRes.json().catch(() => ({}))
         throw new Error(errData.error || 'Failed to get upload URL')

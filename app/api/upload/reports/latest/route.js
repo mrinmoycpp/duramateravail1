@@ -1,33 +1,19 @@
 import { NextResponse } from 'next/server'
 
-const globalKey = '__duramater_report_store__'
-if (!globalThis[globalKey]) globalThis[globalKey] = new Map()
-const reports = globalThis[globalKey]
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'https://api.duramaterhealth.com'
 
 export async function GET(request) {
   try {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const headers = {}
+    const auth = request.headers.get('authorization')
+    if (auth) headers['authorization'] = auth
 
-    let latest = null
-    for (const [, report] of reports) {
-      if (!latest || report.createdAt > latest.createdAt) {
-        latest = { ...report }
-      }
-    }
+    const res = await fetch(`${BACKEND}/api/upload/reports/latest`, { headers })
 
-    if (!latest) {
-      return NextResponse.json({ error: 'No reports found' }, { status: 404 })
-    }
-
-    return NextResponse.json({
-      reportId: latest.reportId,
-      fileName: latest.fileName || `report_${latest.reportId}.pdf`,
-    })
+    const data = await res.json()
+    return NextResponse.json(data, { status: res.status })
   } catch (error) {
-    console.error('Error fetching latest report:', error)
+    console.error('Error proxying latest report:', error)
     return NextResponse.json({ error: 'Failed to fetch latest report' }, { status: 500 })
   }
 }

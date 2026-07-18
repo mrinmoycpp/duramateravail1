@@ -1,27 +1,24 @@
 import { NextResponse } from 'next/server'
 
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'https://api.duramaterhealth.com'
+
 export async function POST(request) {
   try {
     const body = await request.json()
-    const { fileName, mimeType, fileSizeBytes } = body
+    const headers = { 'Content-Type': 'application/json' }
+    const auth = request.headers.get('authorization')
+    if (auth) headers['authorization'] = auth
 
-    if (!fileName) {
-      return NextResponse.json({ error: 'File name is required' }, { status: 400 })
-    }
-
-    // Generate a unique report ID
-    const reportId = `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-
-    // For now, we'll use a simple upload URL that points to our own API
-    // In production, this would be a presigned S3 URL
-    const uploadUrl = `/api/upload/file/${reportId}`
-
-    return NextResponse.json({
-      uploadUrl,
-      reportId
+    const res = await fetch(`${BACKEND}/api/upload/url`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
     })
+
+    const data = await res.json()
+    return NextResponse.json(data, { status: res.status })
   } catch (error) {
-    console.error('Error generating upload URL:', error)
+    console.error('Error proxying upload url:', error)
     return NextResponse.json({ error: 'Failed to generate upload URL' }, { status: 500 })
   }
 }
