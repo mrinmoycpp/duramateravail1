@@ -499,6 +499,7 @@ export default function Dashboard() {
 
   // Apply parsed result data to dashboard state (shared by fetchResult and PUT response)
   const applyResult = (data) => {
+      console.log('applyResult raw data:', JSON.stringify(data, null, 2))
       const mappedBiomarkers = (data.biomarkers || []).map(b => {
         const rawName = b.rawName || b.name || b.biomarkerName || 'Unknown'
         const parsedValue = b.parsedValue ?? b.value ?? b.result ?? null
@@ -621,12 +622,15 @@ export default function Dashboard() {
 
       setLiveCategoryScores(newCategoryScores)
       setLiveCategoryInsights(newCategoryInsights)
-      setLiveRiskFlags((data.riskFlags || []).map(r => ({
-        biomarkerName: r.biomarkerName || r.name || r.rawName || 'Unknown',
-        value: r.value ?? r.parsedValue ?? r.result ?? '—',
-        status: r.status || 'HIGH',
-        referenceRange: r.referenceRange || `${r.refMin ?? r.appliedRefMin ?? 0} - ${r.refMax ?? r.appliedRefMax ?? 0} ${r.unit || ''}`,
-      })))
+      setLiveRiskFlags((data.riskFlags || []).map(r => {
+        const name = r.biomarkerName || r.biomarker || r.markerName || r.marker || r.name || r.rawName || r.test || r.parameter || r.analyte || r.flagName || 'Unknown'
+        const val = r.value ?? r.parsedValue ?? r.rawValue ?? r.result ?? r.measuredValue ?? r.measured ?? '—'
+        const st = r.status || r.flag || r.flagStatus || r.riskLevel || 'HIGH'
+        const range = r.referenceRange || r.range || r.normalRange || r.refRange ||
+          `${r.refMin ?? r.appliedRefMin ?? r.normalMin ?? 0} - ${r.refMax ?? r.appliedRefMax ?? r.normalMax ?? 0} ${r.unit || ''}`
+        console.log('Risk flag mapped:', { name, val, st, range }, 'original keys:', Object.keys(r))
+        return { biomarkerName: name, value: val, status: st, referenceRange: range }
+      }))
 
       // Store metadata for Reports tab
       setReportMeta({
