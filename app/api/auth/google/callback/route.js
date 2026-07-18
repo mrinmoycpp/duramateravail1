@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 
+const BACKEND = 'https://api.duramaterhealth.com'
+
 function getOrigin(request) {
-  // In production, use the request origin to avoid localhost redirects
   if (process.env.NODE_ENV === 'production') {
     return new URL(request.url).origin
   }
@@ -20,6 +21,21 @@ function redirectWithError(request, error = 'GoogleAuthFailed') {
   const url = new URL('/', getOrigin(request))
   url.searchParams.set('error', error)
   return NextResponse.redirect(url)
+}
+
+async function getBackendToken(email, name) {
+  // Try to register on the backend (will auto-login if already exists)
+  try {
+    const res = await fetch(`${BACKEND}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: `google_${email}_dm2026`, name }),
+    })
+    const data = await res.json().catch(() => ({}))
+    return data.token || null
+  } catch {
+    return null
+  }
 }
 
 export async function GET(request) {
@@ -63,9 +79,15 @@ export async function GET(request) {
       provider: 'google',
     }
 
+    // Get a backend JWT token for API calls
+    const backendToken = await getBackendToken(profile.email, profile.name || profile.email)
+
     const redirectPath = state.redirect && state.redirect.startsWith('/') ? state.redirect : '/dashboard'
     const redirectUrl = new URL(redirectPath, getOrigin(request))
     redirectUrl.searchParams.set('user', Buffer.from(JSON.stringify(user)).toString('base64url'))
+    if (backendToken) {
+      redirectUrl.searchParams.set('token', backendToken)
+    }
 
     const response = NextResponse.redirect(redirectUrl)
     response.cookies.delete('google_oauth_state')

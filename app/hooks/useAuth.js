@@ -19,6 +19,8 @@ export function useAuth() {
         const googleUser = JSON.parse(atob(encodedUser.replace(/-/g, '+').replace(/_/g, '/')))
         localStorage.setItem('user', JSON.stringify(googleUser))
         setUser(googleUser)
+        const urlToken = urlParams.get('token')
+        if (urlToken) localStorage.setItem('token', urlToken)
       } catch (e) {
         // ignore malformed payload
       }

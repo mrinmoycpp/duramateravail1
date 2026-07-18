@@ -439,6 +439,7 @@ export default function Dashboard() {
       console.log('Uploading to:', uploadUrl)
       const s3Res = await fetch(uploadUrl, {
         method: 'PUT',
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: formData
       })
       console.log('Upload response status:', s3Res.status)
