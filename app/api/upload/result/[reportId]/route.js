@@ -1,33 +1,4 @@
 import { NextResponse } from 'next/server'
-import { createRequire } from 'module'
-
-if (!globalThis.DOMMatrix) {
-  globalThis.DOMMatrix = class DOMMatrix {
-    constructor() { this.a = 1; this.b = 0; this.c = 0; this.d = 1; this.e = 0; this.f = 0 }
-    scale() { return this }
-    translate() { return this }
-    multiply() { return this }
-    rotate() { return this }
-    skewX() { return this }
-    skewY() { return this }
-    transformPoint(p) { return p }
-  }
-}
-if (!globalThis.ImageData) {
-  globalThis.ImageData = class ImageData {
-    constructor(w, h) { this.width = w; this.height = h; this.data = new Uint8ClampedArray(w * h * 4) }
-  }
-}
-if (!globalThis.Path2D) {
-  globalThis.Path2D = class Path2D { constructor() {} addPath() {} closePath() {} moveTo() {} lineTo() {} } 
-}
-
-const require = createRequire(import.meta.url)
-const { PDFParse } = require('pdf-parse')
-
-const bufKey = '__duramater_pdf_buffers__'
-if (!globalThis[bufKey]) globalThis[bufKey] = new Map()
-const pdfBuffers = globalThis[bufKey]
 
 const globalKey = '__duramater_report_store__'
 if (!globalThis[globalKey]) globalThis[globalKey] = new Map()
@@ -150,7 +121,6 @@ const resultCache = new Map()
 export async function GET(request, { params }) {
   try {
     const { reportId } = await params
-
     if (!reportId) {
       return NextResponse.json({ error: 'Report ID is required' }, { status: 400 })
     }
@@ -162,42 +132,14 @@ export async function GET(request, { params }) {
     const stored = reports.get(reportId)
     const fileName = stored?.fileName || `report_${reportId}.pdf`
 
-    const buffer = pdfBuffers.get(reportId)
-    if (!buffer) {
-      return NextResponse.json({ fileName, reportDate: new Date().toISOString(), updatedAt: new Date().toISOString(), biomarkers: [], healthScores: [], riskFlags: [] })
-    }
-
-    const parser = new PDFParse({ data: buffer, disableWorker: true })
-    await parser.load()
-    const textResult = await parser.getText()
-    await parser.destroy()
-    const text = textResult?.text || ''
-
-    const biomarkers = parseBiomarkersFromText(text)
-    const healthScores = computeHealthScores(biomarkers)
-    const riskFlags = biomarkers
-      .filter(b => b.status !== 'NORMAL')
-      .map(b => ({
-        biomarkerName: b.rawName,
-        value: b.parsedValue,
-        status: b.status,
-        referenceRange: `${b.appliedRefMin} - ${b.appliedRefMax} ${b.unit}`,
-      }))
-
-    pdfBuffers.delete(reportId)
-
-    const result = {
+    return NextResponse.json({
       fileName,
       reportDate: new Date(stored?.createdAt || Date.now()).toISOString(),
       updatedAt: new Date().toISOString(),
-      biomarkers,
-      healthScores,
-      riskFlags,
-    }
-
-    resultCache.set(reportId, result)
-
-    return NextResponse.json(result)
+      biomarkers: [],
+      healthScores: [],
+      riskFlags: [],
+    })
   } catch (error) {
     console.error('Error fetching upload result:', error)
     return NextResponse.json({ error: 'Failed to fetch result' }, { status: 500 })

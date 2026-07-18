@@ -444,6 +444,15 @@ export default function Dashboard() {
       console.log('Upload response status:', s3Res.status)
       if (!s3Res.ok) throw new Error('Failed to upload file')
 
+      const uploadData = await s3Res.json()
+
+      // If the PUT returned parsed results directly, use them (Vercel-compatible)
+      if (uploadData.result) {
+        setReport({ name: f.name, status: 'COMPLETED', reportId })
+        applyResult(uploadData.result)
+        return
+      }
+
       // Step 3 — Confirm upload & start inline processing
       console.log('Confirming upload for reportId:', reportId)
       const confirmRes = await fetch(`${API}/api/upload/confirm`, {
@@ -487,15 +496,8 @@ export default function Dashboard() {
     }
   }
 
-  // Fetch results from backend and map into frontend-friendly shapes
-  const fetchResult = async (reportId, token) => {
-    try {
-      const res = await fetch(`${API}/api/upload/result/${reportId}`, {
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
-      })
-      if (!res.ok) throw new Error('Failed to fetch result')
-      const data = await res.json()
-
+  // Apply parsed result data to dashboard state (shared by fetchResult and PUT response)
+  const applyResult = (data) => {
       // --- Map biomarkers ---
       const mappedBiomarkers = (data.biomarkers || []).map(b => {
         let mappedStatus = 'normal'
@@ -621,7 +623,17 @@ export default function Dashboard() {
           : new Date(data.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
         biomarkerCount: mappedBiomarkers.length,
       })
+  }
 
+  // Fetch results from backend and map into frontend-friendly shapes
+  const fetchResult = async (reportId, token) => {
+    try {
+      const res = await fetch(`${API}/api/upload/result/${reportId}`, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+      })
+      if (!res.ok) throw new Error('Failed to fetch result')
+      const data = await res.json()
+      applyResult(data)
     } catch (err) {
       console.error('fetchResult error:', err)
     }
