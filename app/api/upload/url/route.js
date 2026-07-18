@@ -1,24 +1,30 @@
 import { NextResponse } from 'next/server'
 
+const BACKEND = 'https://api.duramaterhealth.com'
+
 export async function POST(request) {
-  try {
-    const body = await request.json()
-    const { fileName, mimeType, fileSizeBytes } = body
+  const body = await request.json().catch(() => ({}))
+  const auth = request.headers.get('authorization')
 
-    if (!fileName) {
-      return NextResponse.json({ error: 'File name is required' }, { status: 400 })
-    }
+  const res = await fetch(`${BACKEND}/api/upload/url`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(auth ? { Authorization: auth } : {}),
+    },
+    body: JSON.stringify(body),
+  })
 
-    const reportId = `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const data = await res.json().catch(() => ({}))
 
-    const uploadUrl = `/api/upload/file/${reportId}`
+  if (!res.ok) return NextResponse.json(data, { status: res.status })
 
-    return NextResponse.json({
-      uploadUrl,
-      reportId
-    })
-  } catch (error) {
-    console.error('Error generating upload URL:', error)
-    return NextResponse.json({ error: 'Failed to generate upload URL' }, { status: 500 })
-  }
+  const localUploadUrl = `/api/upload/file/${data.reportId}?bk=${encodeURIComponent(data.uploadUrl)}`
+
+  return NextResponse.json({
+    uploadUrl: localUploadUrl,
+    reportId: data.reportId,
+    fileKey: data.fileKey,
+    expiresInSeconds: data.expiresInSeconds,
+  })
 }

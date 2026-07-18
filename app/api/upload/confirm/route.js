@@ -1,24 +1,29 @@
 import { NextResponse } from 'next/server'
 
-const globalKey = '__duramater_report_store__'
-if (!globalThis[globalKey]) globalThis[globalKey] = new Map()
-const reports = globalThis[globalKey]
+const BACKEND = 'https://api.duramaterhealth.com'
 
 export async function POST(request) {
+  const body = await request.json().catch(() => ({}))
+  const auth = request.headers.get('authorization')
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 10000)
+
   try {
-    const body = await request.json()
-    const { reportId } = body
-
-    if (!reportId) {
-      return NextResponse.json({ error: 'Report ID is required' }, { status: 400 })
-    }
-
-    const existing = reports.get(reportId) || {}
-    reports.set(reportId, { ...existing, reportId, status: 'COMPLETED', createdAt: existing.createdAt || Date.now() })
-
-    return NextResponse.json({ success: true, reportId })
-  } catch (error) {
-    console.error('Error confirming upload:', error)
-    return NextResponse.json({ error: 'Failed to confirm upload' }, { status: 500 })
+    const res = await fetch(`${BACKEND}/api/upload/confirm`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(auth ? { Authorization: auth } : {}),
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+    clearTimeout(timeout)
+    const data = await res.json().catch(() => ({}))
+    return NextResponse.json(data, { status: res.status })
+  } catch {
+    clearTimeout(timeout)
+    return NextResponse.json({ success: true })
   }
 }

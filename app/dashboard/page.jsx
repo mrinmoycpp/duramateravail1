@@ -498,26 +498,33 @@ export default function Dashboard() {
 
   // Apply parsed result data to dashboard state (shared by fetchResult and PUT response)
   const applyResult = (data) => {
-      // --- Map biomarkers ---
       const mappedBiomarkers = (data.biomarkers || []).map(b => {
+        const rawName = b.rawName || b.name || b.biomarkerName || 'Unknown'
+        const parsedValue = b.parsedValue ?? b.value ?? b.result ?? null
+        const unit = b.unit || ''
+        const status = b.status || 'NORMAL'
+        const appliedRefMin = b.appliedRefMin ?? b.refMin ?? b.referenceRangeMin ?? 0
+        const appliedRefMax = b.appliedRefMax ?? b.refMax ?? b.referenceRangeMax ?? 0
+        const category = b.biomarkerDefinition?.category || b.category || b.organSystem || 'Other'
+
         let mappedStatus = 'normal'
-        if (b.status === 'NORMAL') mappedStatus = 'optimal'
-        else if (['HIGH', 'LOW', 'CRITICAL_HIGH', 'CRITICAL_LOW'].includes(b.status)) mappedStatus = 'out'
+        if (status === 'NORMAL' || status === 'normal') mappedStatus = 'optimal'
+        else if (['HIGH', 'LOW', 'CRITICAL_HIGH', 'CRITICAL_LOW', 'high', 'low', 'critical_high', 'critical_low'].includes(status)) mappedStatus = 'out'
 
         let labelOverride = undefined
         if (
-          b.rawName.toLowerCase().includes('b12') ||
-          b.rawName.toLowerCase().includes('cobalamin') ||
-          b.rawName.toLowerCase().includes('vitamin b12')
+          rawName.toLowerCase().includes('b12') ||
+          rawName.toLowerCase().includes('cobalamin') ||
+          rawName.toLowerCase().includes('vitamin b12')
         ) {
-          const val = Number(b.parsedValue)
+          const val = Number(parsedValue)
           if (val >= 200 && val <= 300) {
             mappedStatus = 'normal'
             labelOverride = 'Borderline'
           }
         }
 
-        let mappedSystem = b.biomarkerDefinition?.category || 'Other'
+        let mappedSystem = category
         if      (mappedSystem === 'LIPID_PANEL')    mappedSystem = 'Cardiometabolic'
         else if (mappedSystem === 'LIVER_FUNCTION')  mappedSystem = 'Liver'
         else if (mappedSystem === 'KIDNEY_FUNCTION') mappedSystem = 'Kidney'
@@ -534,16 +541,16 @@ export default function Dashboard() {
         }
 
         return {
-          name: b.rawName,
+          name: rawName,
           system: mappedSystem,
           status: mappedStatus,
           statusLabel: labelOverride,
-          value: b.parsedValue !== null && b.parsedValue !== undefined
-            ? b.parsedValue.toString()
+          value: parsedValue !== null && parsedValue !== undefined
+            ? parsedValue.toString()
             : (b.rawValue || '—'),
-          unit: b.unit || '',
-          range: [b.appliedRefMin ?? 0, b.appliedRefMax ?? 0],
-          history: [Number(b.parsedValue) || 0],
+          unit,
+          range: [appliedRefMin ?? 0, appliedRefMax ?? 0],
+          history: [Number(parsedValue) || 0],
         }
       })
 
@@ -613,7 +620,12 @@ export default function Dashboard() {
 
       setLiveCategoryScores(newCategoryScores)
       setLiveCategoryInsights(newCategoryInsights)
-      setLiveRiskFlags(data.riskFlags || [])
+      setLiveRiskFlags((data.riskFlags || []).map(r => ({
+        biomarkerName: r.biomarkerName || r.name || r.rawName || 'Unknown',
+        value: r.value ?? r.parsedValue ?? r.result ?? '—',
+        status: r.status || 'HIGH',
+        referenceRange: r.referenceRange || `${r.refMin ?? r.appliedRefMin ?? 0} - ${r.refMax ?? r.appliedRefMax ?? 0} ${r.unit || ''}`,
+      })))
 
       // Store metadata for Reports tab
       setReportMeta({

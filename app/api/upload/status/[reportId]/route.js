@@ -1,19 +1,15 @@
 import { NextResponse } from 'next/server'
 
+const BACKEND = 'https://api.duramaterhealth.com'
+
 export async function GET(request, { params }) {
-  try {
-    const { reportId } = await params
+  const { reportId } = await params
+  const auth = request.headers.get('authorization')
 
-    if (!reportId) {
-      return NextResponse.json({ error: 'Report ID is required' }, { status: 400 })
-    }
+  const res = await fetch(`${BACKEND}/api/upload/status/${reportId}`, {
+    headers: { ...(auth ? { Authorization: auth } : {}) },
+  })
 
-    return NextResponse.json({
-      status: 'COMPLETED',
-      reportId
-    })
-  } catch (error) {
-    console.error('Error checking upload status:', error)
-    return NextResponse.json({ error: 'Failed to check status' }, { status: 500 })
-  }
+  const data = await res.json().catch(() => ({}))
+  return NextResponse.json(data, { status: res.status })
 }

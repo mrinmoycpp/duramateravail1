@@ -51,8 +51,9 @@ export function useAuth() {
         return { error: { message: errData.error || 'Failed to sign in' } }
       }
 
-      const { user: loggedInUser } = await res.json()
+      const { token, user: loggedInUser } = await res.json()
       localStorage.setItem('user', JSON.stringify(loggedInUser))
+      if (token) localStorage.setItem('token', token)
       setUser(loggedInUser)
       return { data: { user: loggedInUser } }
     } catch (err) {
@@ -73,8 +74,9 @@ export function useAuth() {
         return { error: { message: errData.error || 'Failed to register' } }
       }
 
-      const { user: loggedInUser } = await res.json()
+      const { token, user: loggedInUser } = await res.json()
       localStorage.setItem('user', JSON.stringify(loggedInUser))
+      if (token) localStorage.setItem('token', token)
       setUser(loggedInUser)
       return { data: { user: loggedInUser } }
     } catch (err) {
@@ -96,6 +98,7 @@ export function useAuth() {
 
   const signOut = useCallback(async () => {
     localStorage.removeItem('user')
+    localStorage.removeItem('token')
     setUser(null)
   }, [])
 
