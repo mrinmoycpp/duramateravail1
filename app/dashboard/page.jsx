@@ -499,7 +499,6 @@ export default function Dashboard() {
 
   // Apply parsed result data to dashboard state (shared by fetchResult and PUT response)
   const applyResult = (data) => {
-      console.log('applyResult raw data:', JSON.stringify(data, null, 2))
       const mappedBiomarkers = (data.biomarkers || []).map(b => {
         const rawName = b.rawName || b.name || b.biomarkerName || 'Unknown'
         const parsedValue = b.parsedValue ?? b.value ?? b.result ?? null
@@ -622,15 +621,7 @@ export default function Dashboard() {
 
       setLiveCategoryScores(newCategoryScores)
       setLiveCategoryInsights(newCategoryInsights)
-      setLiveRiskFlags((data.riskFlags || []).map(r => {
-        const name = r.biomarkerName || r.biomarker || r.markerName || r.marker || r.name || r.rawName || r.test || r.parameter || r.analyte || r.flagName || 'Unknown'
-        const val = r.value ?? r.parsedValue ?? r.rawValue ?? r.result ?? r.measuredValue ?? r.measured ?? '—'
-        const st = r.status || r.flag || r.flagStatus || r.riskLevel || 'HIGH'
-        const range = r.referenceRange || r.range || r.normalRange || r.refRange ||
-          `${r.refMin ?? r.appliedRefMin ?? r.normalMin ?? 0} - ${r.refMax ?? r.appliedRefMax ?? r.normalMax ?? 0} ${r.unit || ''}`
-        console.log('Risk flag mapped:', { name, val, st, range }, 'original keys:', Object.keys(r))
-        return { biomarkerName: name, value: val, status: st, referenceRange: range }
-      }))
+      setLiveRiskFlags([])
 
       // Store metadata for Reports tab
       setReportMeta({
@@ -785,42 +776,6 @@ export default function Dashboard() {
 
           <div className="dash-overview-grid">
             <div className="dash-left-col">
-              {liveRiskFlags.length > 0 && (
-                <div className="dash-risks">
-                  <div className="dash-risks-header">
-                    <div className="dash-risks-badge">{liveRiskFlags.length}</div>
-                    <h2>Attention Required</h2>
-                  </div>
-                  <div className="dash-risk-list">
-                    {liveRiskFlags.map((r, i) => {
-                      const isHigh = r.status === 'HIGH' || r.status === 'CRITICAL_HIGH'
-                      return (
-                        <div className="dash-risk-item" key={i}>
-                          <div className={`dash-risk-icon ${isHigh ? 'high' : 'low'}`}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-                            </svg>
-                          </div>
-                          <div className="dash-risk-body">
-                            <div className="dash-risk-top">
-                              <span className="dash-risk-name">{r.biomarkerName}</span>
-                              <span className={`dash-risk-status ${isHigh ? 'high' : 'low'}`}>
-                                {isHigh ? 'Above Range' : 'Below Range'}
-                              </span>
-                            </div>
-                            <div className="dash-risk-detail">
-                              <span className="dash-risk-val">{r.value}</span>
-                              <span className="dash-risk-range">{r.referenceRange}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-
               <div className="dash-card">
                 <div className="dash-card-header">
                   <h2>{dataNav}</h2>
