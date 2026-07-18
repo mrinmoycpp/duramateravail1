@@ -7,7 +7,7 @@ import { BRAND } from '../data/content.js'
 import { STATUS_META } from '../data/dashboard.js'
 import { useAuth } from '../hooks/useAuth.js'
 
-const API = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'https://api.duramaterhealth.com'
+const API = ''
 
 
 
@@ -421,7 +421,7 @@ export default function Dashboard() {
 
       // Step 1 — Get presigned upload URL
       
-      const urlRes = await fetch(`https://api.duramaterhealth.com/api/upload/url`, {
+      const urlRes = await fetch(`${API}/api/upload/url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ fileName: f.name, mimeType: f.type || 'application/pdf', fileSizeBytes: f.size })

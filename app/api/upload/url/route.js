@@ -1,24 +1,24 @@
 import { NextResponse } from 'next/server'
 
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'https://api.duramaterhealth.com'
-
 export async function POST(request) {
   try {
     const body = await request.json()
-    const headers = { 'Content-Type': 'application/json' }
-    const auth = request.headers.get('authorization')
-    if (auth) headers['authorization'] = auth
+    const { fileName, mimeType, fileSizeBytes } = body
 
-    const res = await fetch(`${BACKEND}/api/upload/url`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
+    if (!fileName) {
+      return NextResponse.json({ error: 'File name is required' }, { status: 400 })
+    }
+
+    const reportId = `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    const uploadUrl = `/api/upload/file/${reportId}`
+
+    return NextResponse.json({
+      uploadUrl,
+      reportId
     })
-
-    const data = await res.json()
-    return NextResponse.json(data, { status: res.status })
   } catch (error) {
-    console.error('Error proxying upload url:', error)
+    console.error('Error generating upload URL:', error)
     return NextResponse.json({ error: 'Failed to generate upload URL' }, { status: 500 })
   }
 }

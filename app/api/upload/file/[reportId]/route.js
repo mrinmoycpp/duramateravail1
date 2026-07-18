@@ -1,30 +1,34 @@
 import { NextResponse } from 'next/server'
 
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'https://api.duramaterhealth.com'
+const bufKey = '__duramater_pdf_buffers__'
+if (!globalThis[bufKey]) globalThis[bufKey] = new Map()
+const pdfBuffers = globalThis[bufKey]
+
+const globalKey = '__duramater_report_store__'
+if (!globalThis[globalKey]) globalThis[globalKey] = new Map()
+const reports = globalThis[globalKey]
 
 export async function PUT(request, { params }) {
   try {
     const { reportId } = await params
-    if (!reportId) {
-      return NextResponse.json({ error: 'Report ID is required' }, { status: 400 })
-    }
 
     const formData = await request.formData()
+    const file = formData.get('file')
 
-    const headers = {}
-    const auth = request.headers.get('authorization')
-    if (auth) headers['authorization'] = auth
+    if (!file) {
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+    }
 
-    const res = await fetch(`${BACKEND}/api/upload/file/${reportId}`, {
-      method: 'PUT',
-      headers,
-      body: formData,
-    })
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
 
-    const data = await res.json()
-    return NextResponse.json(data, { status: res.status })
+    pdfBuffers.set(reportId, buffer)
+
+    reports.set(reportId, { reportId, fileName: file.name, status: 'UPLOADED', createdAt: Date.now() })
+
+    return NextResponse.json({ success: true, reportId })
   } catch (error) {
-    console.error('Error proxying file upload:', error)
+    console.error('Error uploading file:', error)
     return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 })
   }
 }
